@@ -165,6 +165,8 @@ Resources:
         Variables:
           STORAGEBUCKET0930_BUCKET_NAME: !Ref storageBucket0930
           STORAGEBUCKET0930_BUCKET_ARN: !GetAtt storageBucket0930.Arn
+          DURATION_SECONDS: 3600
+          S3_PREFIX_NAME: upload/
       Policies:
         - Statement:
             - Effect: Allow

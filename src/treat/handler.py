@@ -4,7 +4,7 @@ from botocore.client import Config
 
 import os
 
-S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
+STORAGEBUCKET0930_BUCKET_NAME = os.environ["STORAGEBUCKET0930_BUCKET_NAME"]
 S3_PREFIX_NAME = os.environ["S3_PREFIX_NAME"]
 DURATION_SECONDS = int(os.environ["DURATION_SECONDS"])
 
@@ -18,11 +18,11 @@ def upload_files_handler(event, context):
     return_obj["body"] = dict()
 
     # バケット名のs設定
-    return_obj["body"]["bucket"] = S3_BUCKET_NAME
+    return_obj["body"]["bucket"] = STORAGEBUCKET0930_BUCKET_NAME
     # フォルダー名の設定
     return_obj["body"]["prefix"] = S3_PREFIX_NAME
 
-    target_info = s3_client.generate_presigned_post(S3_BUCKET_NAME,
+    target_info = s3_client.generate_presigned_post(STORAGEBUCKET0930_BUCKET_NAME,
                                                     S3_PREFIX_NAME +
                                                     "${filename}",
                                                     Fields=None,
