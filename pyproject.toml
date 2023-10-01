@@ -8,6 +8,7 @@ packages = [{include = "presignedurl_file_treatment"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
+boto3 = "^1.28.57"
 
 
 [build-system]
