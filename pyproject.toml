@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "presignedurl-file-treatment"
+version = "0.1.0"
+description = ""
+authors = ["Atsushi Fujioka <atsushi3233@gmail.com>"]
+readme = "README.md"
+packages = [{include = "presignedurl_file_treatment"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

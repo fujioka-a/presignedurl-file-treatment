@@ -65,9 +65,9 @@ Resources:
   UserPoolResourceServer:
     Type: AWS::Cognito::UserPoolResourceServer
     Properties:
-      UserPoolId: <String>
-      Identifier: <String>
-      Name: <String>
+      UserPoolId: !Ref FilerUserPool
+      Identifier: https://my-weather-api.example.com
+      Name: UIName
   FilerUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -76,6 +76,9 @@ Resources:
       AliasAttributes:
         - email
         - preferred_username
+      MfaConfiguration: 'ON'
+      EnabledMfas:
+        - SMS_MFA
       UserPoolName: !Sub ${AWS::StackName}-FilerUserPool
       Policies:
         PasswordPolicy:
@@ -197,8 +200,19 @@ Resources:
   UserPoolUICustomizationAttachment:
     Type: AWS::Cognito::UserPoolUICustomizationAttachment
     Properties:
-      UserPoolId: <String>
-      ClientId: <String>
+      UserPoolId: !Ref FilerUserPool
+      ClientId: !Ref FilerUserPoolClient
+  FilerUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref FilerUserPool
+      CallbackURLs:
+        - !Ref webHostingBucket
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref FilerUserPool
+      Domain: test.application.com
 Transform: AWS::Serverless-2016-10-31
 Metadata:
   AWS::Composer::Groups:
@@ -208,3 +222,5 @@ Metadata:
         - UserPoolResourceServer
         - FilerUserPool
         - UserPoolUICustomizationAttachment
+        - FilerUserPoolClient
+        - UserPoolDomain
