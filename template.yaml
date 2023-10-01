@@ -50,19 +50,25 @@ Resources:
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 type: aws_proxy
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function.Arn}/invocations
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${getFilesHandler.Arn}/invocations
               responses: {}
             post:
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 type: aws_proxy
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function2.Arn}/invocations
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${uploadFilesHandler.Arn}/invocations
               responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
       Cors:
         MaxAge: 5
-  UserPool:
+  UserPoolResourceServer:
+    Type: AWS::Cognito::UserPoolResourceServer
+    Properties:
+      UserPoolId: <String>
+      Identifier: <String>
+      Name: <String>
+  FilerUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
       AdminCreateUserConfig:
@@ -70,19 +76,24 @@ Resources:
       AliasAttributes:
         - email
         - preferred_username
-      UserPoolName: !Sub ${AWS::StackName}-UserPool
+      UserPoolName: !Sub ${AWS::StackName}-FilerUserPool
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+      UsernameAttributes:
+        - email
       AutoVerifiedAttributes:
         - email
-  Function:
+  getFilesHandler:
     Type: AWS::Serverless::Function
     Properties:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: Function
-      CodeUri: src/Function
-      Handler: index.handler
-      Runtime: nodejs18.x
-      MemorySize: 3008
+        - ResourceName: getFilesHandler
+      CodeUri: src/treat
+      Handler: handler.get_files_handler
+      Runtime: python3.11
+      MemorySize: 256
       Timeout: 30
       Tracing: Active
       Events:
@@ -123,21 +134,21 @@ Resources:
               Resource:
                 - !Sub arn:${AWS::Partition}:s3:::${storageBucket0930}
                 - !Sub arn:${AWS::Partition}:s3:::${storageBucket0930}/*
-  FunctionLogGroup:
+  getFilesHandlerLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Retain
     Properties:
-      LogGroupName: !Sub /aws/lambda/${Function}
-  Function2:
+      LogGroupName: !Sub /aws/lambda/${getFilesHandler}
+  uploadFilesHandler:
     Type: AWS::Serverless::Function
     Properties:
       Description: !Sub
         - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: Function2
-      CodeUri: src/Function2
-      Handler: index.handler
-      Runtime: nodejs18.x
-      MemorySize: 3008
+        - ResourceName: uploadFilesHandler
+      CodeUri: src/treat
+      Handler: handler.upload_files_handler
+      Runtime: python3.11
+      MemorySize: 256
       Timeout: 30
       Tracing: Active
       Events:
@@ -178,9 +189,22 @@ Resources:
               Resource:
                 - !Sub arn:${AWS::Partition}:s3:::${storageBucket0930}
                 - !Sub arn:${AWS::Partition}:s3:::${storageBucket0930}/*
-  Function2LogGroup:
+  uploadFilesHandlerLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Retain
     Properties:
-      LogGroupName: !Sub /aws/lambda/${Function2}
+      LogGroupName: !Sub /aws/lambda/${uploadFilesHandler}
+  UserPoolUICustomizationAttachment:
+    Type: AWS::Cognito::UserPoolUICustomizationAttachment
+    Properties:
+      UserPoolId: <String>
+      ClientId: <String>
 Transform: AWS::Serverless-2016-10-31
+Metadata:
+  AWS::Composer::Groups:
+    Group:
+      Label: Group
+      Members:
+        - UserPoolResourceServer
+        - FilerUserPool
+        - UserPoolUICustomizationAttachment
