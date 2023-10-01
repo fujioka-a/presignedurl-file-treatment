@@ -41,5 +41,9 @@
     "test_*.py"
   ],
   "python.pythonPath": ".venv\\Scripts\\python.exe",
-  "git.ignoreLimitWarning": true
+  "git.ignoreLimitWarning": true,
+  "isort.check": true,
+  "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+  }
 }
