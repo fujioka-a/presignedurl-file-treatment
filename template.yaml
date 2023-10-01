@@ -71,6 +71,8 @@ Resources:
         - email
         - preferred_username
       UserPoolName: !Sub ${AWS::StackName}-UserPool
+      AutoVerifiedAttributes:
+        - email
   Function:
     Type: AWS::Serverless::Function
     Properties:
