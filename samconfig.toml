@@ -1,0 +1,19 @@
+version = 0.1
+
+[default.build.parameters]
+debug = true
+use_container = false
+
+[stg.deploy.parameters]
+debug = true
+stack_name = "presignedurl-app-stack"
+
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_NAMED_IAM"
+disable_rollback = false
+tags = [
+  "env=\"stg\""
+]
+
+[prd.deploy.parameters]
