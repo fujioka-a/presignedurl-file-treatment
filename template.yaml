@@ -45,13 +45,14 @@ Resources:
         openapi: '3.0'
         info: {}
         paths:
-          /:
+          /api/download:
             get:
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${getFilesHandler.Arn}/invocations
               responses: {}
+          /api/upload:
             post:
               x-amazon-apigateway-integration:
                 httpMethod: POST
@@ -62,31 +63,11 @@ Resources:
       TracingEnabled: true
       Cors:
         MaxAge: 5
-  UserPoolResourceServer:
-    Type: AWS::Cognito::UserPoolResourceServer
-    Properties:
-      UserPoolId: !Ref FilerUserPool
-      Identifier: https://my-weather-api.example.com
-      Name: UIName
-  FilerUserPool:
-    Type: AWS::Cognito::UserPool
-    Properties:
-      AdminCreateUserConfig:
-        AllowAdminCreateUserOnly: false
-      AliasAttributes:
-        - email
-        - preferred_username
-      MfaConfiguration: 'ON'
-      EnabledMfas:
-        - SMS_MFA
-      UserPoolName: !Sub ${AWS::StackName}-FilerUserPool
-      Policies:
-        PasswordPolicy:
-          MinimumLength: 8
-      UsernameAttributes:
-        - email
-      AutoVerifiedAttributes:
-        - email
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !Sub arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/placeholder
+        DefaultAuthorizer: CognitoAuthorizer
   getFilesHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -99,13 +80,6 @@ Resources:
       MemorySize: 256
       Timeout: 30
       Tracing: Active
-      Events:
-        ApiGET:
-          Type: Api
-          Properties:
-            Path: /
-            Method: GET
-            RestApiId: !Ref Api
       Environment:
         Variables:
           STORAGEBUCKET0930_BUCKET_NAME: !Ref storageBucket0930
@@ -137,6 +111,13 @@ Resources:
               Resource:
                 - !Sub arn:${AWS::Partition}:s3:::${storageBucket0930}
                 - !Sub arn:${AWS::Partition}:s3:::${storageBucket0930}/*
+      Events:
+        ApiGETapidownload:
+          Type: Api
+          Properties:
+            Path: /api/download
+            Method: GET
+            RestApiId: !Ref Api
   getFilesHandlerLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Retain
@@ -154,13 +135,6 @@ Resources:
       MemorySize: 256
       Timeout: 30
       Tracing: Active
-      Events:
-        ApiPOST:
-          Type: Api
-          Properties:
-            Path: /
-            Method: POST
-            RestApiId: !Ref Api
       Environment:
         Variables:
           STORAGEBUCKET0930_BUCKET_NAME: !Ref storageBucket0930
@@ -194,11 +168,44 @@ Resources:
               Resource:
                 - !Sub arn:${AWS::Partition}:s3:::${storageBucket0930}
                 - !Sub arn:${AWS::Partition}:s3:::${storageBucket0930}/*
+      Events:
+        ApiPOSTapiupload:
+          Type: Api
+          Properties:
+            Path: /api/upload
+            Method: POST
+            RestApiId: !Ref Api
   uploadFilesHandlerLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Retain
     Properties:
       LogGroupName: !Sub /aws/lambda/${uploadFilesHandler}
+  UserPoolResourceServer:
+    Type: AWS::Cognito::UserPoolResourceServer
+    Properties:
+      UserPoolId: !Ref FilerUserPool
+      Identifier: https://my-weather-api.example.com
+      Name: UIName
+  FilerUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      MfaConfiguration: 'ON'
+      UserPoolName: !Sub ${AWS::StackName}-FilerUserPool
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      SmsConfiguration:
+        ExternalId: cognito-sms-configuration-id
+        SnsCallerArn: !GetAtt SmsRole.Arn
+      EmailVerificationMessage: Your verification code is {####}
+      EmailVerificationSubject: Your verification code
+      EmailVerificationMessageByLink: 'Please click the following link to verify your email: {##Verify Email##}'
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_LINK
   UserPoolUICustomizationAttachment:
     Type: AWS::Cognito::UserPoolUICustomizationAttachment
     Properties:
@@ -215,6 +222,40 @@ Resources:
     Properties:
       UserPoolId: !Ref FilerUserPool
       Domain: test.application.com
+  Api2:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub
+        - ${ResourceName} From Stack ${AWS::StackName}
+        - ResourceName: Api2
+      StageName: Prod
+      DefinitionBody:
+        openapi: '3.0'
+        info: {}
+        paths:
+          /web/{proxy+}:
+            get:
+              responses: {}
+      EndpointConfiguration: REGIONAL
+      TracingEnabled: true
+      Cors:
+        MaxAge: 5
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !Sub arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/placeholder
+        DefaultAuthorizer: CognitoAuthorizer
+  SmsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Principal:
+            Service:
+              - cognito-idp.amazonaws.com
+          Action: sts:AssumeRole
 Transform: AWS::Serverless-2016-10-31
 Metadata:
   AWS::Composer::Groups:
