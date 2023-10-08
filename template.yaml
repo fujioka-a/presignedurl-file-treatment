@@ -63,11 +63,6 @@ Resources:
       TracingEnabled: true
       Cors:
         MaxAge: 5
-      Auth:
-        Authorizers:
-          CognitoAuthorizer:
-            UserPoolArn: !Sub arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/placeholder
-        DefaultAuthorizer: CognitoAuthorizer
   getFilesHandler:
     Type: AWS::Serverless::Function
     Properties:
@@ -190,7 +185,8 @@ Resources:
     Type: AWS::Cognito::UserPool
     Properties:
       MfaConfiguration: 'ON'
-      UserPoolName: !Sub ${AWS::StackName}-FilerUserPool
+      UserPoolName: file-treatment-user-pool
+      // can't use capital characters because cognito related setting doesn't allow it
       Policies:
         PasswordPolicy:
           MinimumLength: 8
@@ -200,10 +196,9 @@ Resources:
         - email
       SmsConfiguration:
         ExternalId: cognito-sms-configuration-id
-        SnsCallerArn: !GetAtt SmsRole.Arn
+        SnsCallerArn: !GetAtt [SmsRole, Arn]
       EmailVerificationMessage: Your verification code is {####}
       EmailVerificationSubject: Your verification code
-      EmailVerificationMessageByLink: 'Please click the following link to verify your email: {##Verify Email##}'
       VerificationMessageTemplate:
         DefaultEmailOption: CONFIRM_WITH_LINK
   UserPoolUICustomizationAttachment:
@@ -221,30 +216,7 @@ Resources:
     Type: AWS::Cognito::UserPoolDomain
     Properties:
       UserPoolId: !Ref FilerUserPool
-      Domain: test.application.com
-  Api2:
-    Type: AWS::Serverless::Api
-    Properties:
-      Name: !Sub
-        - ${ResourceName} From Stack ${AWS::StackName}
-        - ResourceName: Api2
-      StageName: Prod
-      DefinitionBody:
-        openapi: '3.0'
-        info: {}
-        paths:
-          /web/{proxy+}:
-            get:
-              responses: {}
-      EndpointConfiguration: REGIONAL
-      TracingEnabled: true
-      Cors:
-        MaxAge: 5
-      Auth:
-        Authorizers:
-          CognitoAuthorizer:
-            UserPoolArn: !Sub arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/placeholder
-        DefaultAuthorizer: CognitoAuthorizer
+      Domain: "test.application.com"
   SmsRole:
     Type: AWS::IAM::Role
     Properties:
@@ -256,6 +228,15 @@ Resources:
             Service:
               - cognito-idp.amazonaws.com
           Action: sts:AssumeRole
+      Policies:
+        - PolicyName: "AllowCognitoSms"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "sns:Publish"
+                Resource: "*"
 Transform: AWS::Serverless-2016-10-31
 Metadata:
   AWS::Composer::Groups:
